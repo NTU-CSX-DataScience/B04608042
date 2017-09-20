@@ -7,13 +7,16 @@ output: html_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
-作業一
+我稍微查詢了一下學校的網站，發現會有公開的資料都是被整理過的，只以這些資料去做統計分析我覺得有點被侷限住
+我希望能試著從學校的互動式網站(ex.課程網、圖書館館藏查詢系統)自己去重建資料，再做分析，目前有兩個想法:
+1.從課程網去找每個時段各開了什麼課，再從選課人數和課程所在的教室去評量，是否有空間不夠或是大教室被浪費的問題)
+2.從圖書館的館藏查詢系統找出被多次借閱，或多人等待的書。並再以此作分析。
+台大圖書館統計數據http://www.lib.ntu.edu.tw/node/2540
 ```{r cars}
 summary(cars)
 ```
 
-## Including Plots
+### Including Plots
 
 You can also embed plots, for example:
 
