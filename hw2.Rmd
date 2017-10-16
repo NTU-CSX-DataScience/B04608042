@@ -1,0 +1,68 @@
+---
+title: "Hw2"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+library(dplyr)
+library(hflights)
+hf = tbl_df(hflights)
+a = hf[which(hf$Distance==0)]
+print(a)
+```
+#Q1.一年內哪一些時段容易誤點。
+```{r,include=TRUE}
+library(dplyr)
+library(hflights)
+hf = tbl_df(hflights)
+hf%>%
+  select(Month,ArrDelay,ArrTime,DepDelay,FlightNum,DayofMonth,DayOfWeek)%>%
+  filter(DepDelay < 0,ArrDelay<0)%>%
+  group_by(Month)%>%
+  summarise(avg_ArrDelay=mean(ArrDelay),avg_DepDelay=mean(DepDelay),times=n())%>%      
+  print(hf)%>% #結果發現出發延誤遠比底達延誤還少，因此只以抵達延誤做排序
+  arrange((avg_ArrDelay))%>%
+  print(hf)%>% #秋冬季比較少誤點
+  mutate(avg_ArrDelay=rank(avg_ArrDelay))%>% #以排名顯示(延誤最久為第一名) 
+  arrange(desc( times ))%>% # 誤點次數與誤點時間長短的關係並不明顯，無法斷定易誤點的時段。但可以看出五月無論次數與時間都是最少的，因此搭五月的班機風險最小。
+  print(hf)
+
+```
+#Q2.飛行長短是否會使航班容易延誤?
+```{r , include=TRUE}
+hf%>%
+
+  select(Distance,ArrDelay)%>%#呈上題，在此只考慮 抵達延誤
+  group_by(Distance)%>%
+  summarise(avg_ArrDelay=mean(ArrDelay, na.rm = T),times=n())%>%  
+  arrange(Distance)%>%
+  filter(times>1000)%>%
+  print(hf)#由分析結果看不出飛行長短與的延誤關係
+
+
+
+```
+
+#一周哪些時段是各航線的巔峰時段
+```{r , include=TRUE}
+hf%>% 
+ select(Distance,DayOfWeek)%>% #用距離來區分各條航線
+  group_by(Distance)%>%
+  table()%>%
+  as.data.frame()%>%
+  arrange(desc(Freq))#有些航線的班次遠多於其他航班，因此會造成誤導，因此用比例來做頻率判斷
+
+```
+{r,include=True}
+hf%>%
+  select(Distance,DayOfWeek)%>% #用距離來區分各條航線
+  table()%>%
+  as.data.frame.matrix()
+  #colSums()#可知道航班在四、五最多
+  #merge(hf,rowSums(hf))
+
+
+
+```
+
+
