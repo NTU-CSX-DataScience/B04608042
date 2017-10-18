@@ -1,68 +1,111 @@
 ---
 title: "Hw2"
 output: html_document
+author: "翁嬿婷B04608042"
 ---
 
 ```{r setup, include=TRUE}
 library(dplyr)
 library(hflights)
+library(ggplot2)
 hf = tbl_df(hflights)
-a = hf[which(hf$Distance==0)]
-print(a)
+
 ```
-#Q1.一年內哪一些時段容易誤點。
+
+
+###Q1.一年內哪一些時段容易誤點。
 ```{r,include=TRUE}
-library(dplyr)
-library(hflights)
-hf = tbl_df(hflights)
-hf%>%
-  select(Month,ArrDelay,ArrTime,DepDelay,FlightNum,DayofMonth,DayOfWeek)%>%
-  filter(DepDelay < 0,ArrDelay<0)%>%
+q1 =hf
+q1 = 
+  select(q1,Month,ArrDelay,ArrTime,DepDelay)%>%
+  filter(DepDelay > 0,ArrDelay>0)%>%
   group_by(Month)%>%
-  summarise(avg_ArrDelay=mean(ArrDelay),avg_DepDelay=mean(DepDelay),times=n())%>%      
-  print(hf)%>% #結果發現出發延誤遠比底達延誤還少，因此只以抵達延誤做排序
-  arrange((avg_ArrDelay))%>%
-  print(hf)%>% #秋冬季比較少誤點
-  mutate(avg_ArrDelay=rank(avg_ArrDelay))%>% #以排名顯示(延誤最久為第一名) 
-  arrange(desc( times ))%>% # 誤點次數與誤點時間長短的關係並不明顯，無法斷定易誤點的時段。但可以看出五月無論次數與時間都是最少的，因此搭五月的班機風險最小。
-  print(hf)
-
-```
-#Q2.飛行長短是否會使航班容易延誤?
-```{r , include=TRUE}
-hf%>%
-
-  select(Distance,ArrDelay)%>%#呈上題，在此只考慮 抵達延誤
-  group_by(Distance)%>%
-  summarise(avg_ArrDelay=mean(ArrDelay, na.rm = T),times=n())%>%  
-  arrange(Distance)%>%
-  filter(times>1000)%>%
-  print(hf)#由分析結果看不出飛行長短與的延誤關係
-
-
-
-```
-
-#一周哪些時段是各航線的巔峰時段
-```{r , include=TRUE}
-hf%>% 
- select(Distance,DayOfWeek)%>% #用距離來區分各條航線
-  group_by(Distance)%>%
+  summarise(avg_ArrDelay=mean(ArrDelay),avg_DepDelay=mean(DepDelay),times=n(),avg_delay= (avg_DepDelay+avg_ArrDelay)*0.5)
+  #為了避免各月份的總航班本身就有差距，只以延遲的航班總數判斷頻率不公平
+pa = hf
+pa = 
+  select(pa,Month)%>%
   table()%>%
-  as.data.frame()%>%
-  arrange(desc(Freq))#有些航線的班次遠多於其他航班，因此會造成誤導，因此用比例來做頻率判斷
+  as.data.frame()
+names(pa)=c("Month","totaltime")
+q1 = 
+  merge(q1, pa, by = "Month")%>%
+  mutate(freq = paste(round(100 *(times) / (totaltime)),"%"))%>%
+  arrange(desc( freq ))
+q1$Month<- as.factor(q1$Month) 
+print(q1)
+
+qplot(x=freq,                               
+      y=avg_delay,                              
+      data=q1,                      
+      geom="point",                         # 圖形=scatter plot
+      main = "Scatter Plot of delaytime-freq",  
+      xlab="frequence",                          
+      ylab="delaytime",                    
+      color= Month                          # 以顏色標註月份，複合式的散布圖
+      )
+## 可以看出前半年(1~6月)無論時間或頻率都偏高
+
 
 ```
-{r,include=True}
-hf%>%
-  select(Distance,DayOfWeek)%>% #用距離來區分各條航線
+###Q2.飛行長短是否會使航班容易延誤?
+```{r , include=TRUE}
+Q2=hf
+Q2=
+  select(Q2,Distance,ArrDelay,DepDelay)%>%
+  filter(ArrDelay>0,DepDelay > 0)%>%
+  mutate(realmiss=ArrDelay-DepDelay)%>%#扣除出發延誤造成的抵達延誤，讓飛行長短成為主要差異
+  group_by(Distance)%>%
+  summarise(times=n(),realmiss=mean(realmiss))
+
+#飛行距離與延遲時間長短完全沒有關係
+pa2 = hf
+pa2 = 
+  select(pa2,Distance)%>%
   table()%>%
+  as.data.frame()
+names(pa2)=c("Distance","total")
+Q2 = 
+  merge(Q2, pa2, by = "Distance")%>%
+  mutate(freq = 100 *(times) / (total))%>%
+  filter(total > 100)#班次太少頻率的參考值沒有意義
+  
+ggplot(data=Q2)+
+  geom_point(aes(
+                y=realmiss,
+                x=Distance,                             
+                main = "飛行距離與延遲關係",
+                color= freq
+              )
+
+)
+##雖然飛行距離與延遲，不論是長短或次數都沒有明顯影響，但可以看出'出發延遲但仍抵達並沒有太嚴重延遲的情況(realmiss<0)'明顯偏少，即如果出發延遲了的話，抵達有很高的機率會延遲更久。
+
+```
+
+
+
+###一周哪些時段是各航線的巔峰時段
+```{r, include=TRUE}
+Q3 = hf
+Q3 =
+  select(Q3,DayOfWeek,Distance,Origin,Dest)%>%
+  mutate(Distance = paste(Origin,">>",Dest))#先區分各條航線
+tbl = table(Q3$Distance,Q3$DayOfWeek)%>%
+      as.data.frame()%>%
+      arrange(desc(Freq))#有些航線的班次遠多於其他航班，在此只挑班次最多的前三條航線觀察("HOU >> DAL"& "IAH >> ORD" &"IAH >>  ATL")
+Q3 = 
+  filter(Q3,(Q3$Distance=="HOU >> DAL") | (Q3$Distance=="IAH >> ATL") |(Q3$Distance=="IAH >> ORD"))%>%
+  select(DayOfWeek,Distance)
+tbl = 
+  table(Q3)%>%
   as.data.frame.matrix()
-  #colSums()#可知道航班在四、五最多
-  #merge(hf,rowSums(hf))
 
-
-
+pie(tbl$`HOU >> DAL`)
+pie(tbl$`IAH >> ORD`)
+pie(tbl$`IAH >> ATL`)
+##由結果圖只能稍微判斷HOU >> DAL在星期六的班次最少，另外兩條航線的航班分布平均
 ```
+
 
 
