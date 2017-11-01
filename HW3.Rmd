@@ -1,0 +1,62 @@
+---
+title: "HW3"
+author: "翁嬿婷"
+output: html_document
+---
+# 搜尋美國專利局中 所有權人為台灣大學 之專利案件
+#以此分析台大的研究趨勢
+
+```{r setup, include=FALSE}
+library('xml2')
+library('rvest')
+library('NLP')
+library('tm')
+library('stringr')
+library('RColorBrewer')
+library('wordcloud')
+library("SnowballC")
+```
+
+
+```{r,include=TRUE}
+#USPTO之搜尋網頁 
+url =
+"http://patft.uspto.gov/netacgi/nph-Parser?Sect1=PTO2&Sect2=HITOFF&u=%2Fnetahtml%2FPTO%2Fsearch-adv.htm&r=0&p=1&f=S&l=50&Query=AN%2F%22NATIONAL+TAIWAN+UNIVERSITY%22&d=PTXT"
+wordpage = read_html(url)
+
+#連接近各專利說明書內並擷取其中的摘要部分作分析
+xpath ="//table//tr/td[2]/a"
+half_url=xml_attr(xml_find_all(wordpage,xpath),"href")
+url_content = paste("http://patft.uspto.gov", half_url,sep="")
+page1=" "
+for( i in 1:50){ 
+  patent = read_html( url_content[i])
+  target = "//body//p[1]"
+  part = xml_find_all(patent,target)%>%xml_text()
+  page1 = paste(part,page1)
+}
+
+#文本清理
+docs = Corpus(VectorSource(page1))
+# Remove english common stopwords
+docs <- tm_map(docs, removeWords, stopwords("english"))
+# Remove punctuations
+docs <- tm_map(docs, removePunctuation)
+# Eliminate extra white spaces
+docs <- tm_map(docs, stripWhitespace)
+# 因為法律文獻的書寫方式有固定模式，因此要大量移出不重要的名詞
+docs = tm_map(docs,removeWords,c("generate","object","association","connected"," period","includes","shell","provided","first","second","present","end","group","formed","element","comprising","can","the"))
+# Convert the text to lower cas
+docs <- tm_map(docs, content_transformer(tolower))
+##產生詞頻表格與文字雲
+dtm <- TermDocumentMatrix(docs)
+m <- as.matrix(dtm)
+v <- sort(rowSums(m),decreasing=TRUE)
+d <- data.frame(word = names(v),freq=v)
+print(head(d, 10))
+print(wordcloud(words = d$word, freq = d$freq, min.freq = 3,
+          max.words=20, random.order=FALSE, rot.per=0.38, 
+          colors=brewer.pal(7, "Dark2")))
+```
+
+
