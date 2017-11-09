@@ -1,10 +1,10 @@
 ---
 title: "HW3"
-author: "¯Îñü´@"
+author: "ç¿å¬¿å©·"
 output: html_document
 ---
-# ·j´M¬ü°ê±M§Q§½¤¤ ©Ò¦³Åv¤H¬°¥xÆW¤j¾Ç ¤§±M§Q®×¥ó
-#¥H¦¹¤ÀªR¥x¤jªº¬ã¨sÁÍ¶Õ
+# æœå°‹ç¾åœ‹å°ˆåˆ©å±€ä¸­ æ‰€æœ‰æ¬Šäººç‚ºå°ç£å¤§å­¸ ä¹‹å°ˆåˆ©æ¡ˆä»¶
+#ä»¥æ­¤åˆ†æå°å¤§çš„ç ”ç©¶è¶¨å‹¢
 
 ```{r setup, include=FALSE}
 library('xml2')
@@ -19,12 +19,12 @@ library("SnowballC")
 
 
 ```{r,include=TRUE}
-#USPTO¤§·j´Mºô­¶ 
+#USPTOä¹‹æœå°‹ç¶²é  
 url =
 "http://patft.uspto.gov/netacgi/nph-Parser?Sect1=PTO2&Sect2=HITOFF&u=%2Fnetahtml%2FPTO%2Fsearch-adv.htm&r=0&p=1&f=S&l=50&Query=AN%2F%22NATIONAL+TAIWAN+UNIVERSITY%22&d=PTXT"
 wordpage = read_html(url)
 
-#³s±µªñ¦U±M§Q»¡©ú®Ñ¤º¨ÃÂ^¨ú¨ä¤¤ªººK­n³¡¤À§@¤ÀªR
+#é€£æ¥é€²å„å°ˆåˆ©èªªæ˜æ›¸å…§ä¸¦æ“·å–å…¶ä¸­çš„æ‘˜è¦éƒ¨åˆ†ä½œåˆ†æ
 xpath ="//table//tr/td[2]/a"
 half_url=xml_attr(xml_find_all(wordpage,xpath),"href")
 url_content = paste("http://patft.uspto.gov", half_url,sep="")
@@ -36,19 +36,20 @@ for( i in 1:50){
   page1 = paste(part,page1)
 }
 
-#¤å¥»²M²z
+#æ–‡æœ¬æ¸…ç†
 docs = Corpus(VectorSource(page1))
+# Convert the text to lower cas
+docs <- tm_map(docs, content_transformer(tolower))
 # Remove english common stopwords
 docs <- tm_map(docs, removeWords, stopwords("english"))
 # Remove punctuations
 docs <- tm_map(docs, removePunctuation)
 # Eliminate extra white spaces
 docs <- tm_map(docs, stripWhitespace)
-# ¦]¬°ªk«ß¤åÄmªº®Ñ¼g¤è¦¡¦³©T©w¼Ò¦¡¡A¦]¦¹­n¤j¶q²¾¥X¤£­«­nªº¦Wµü
+# å› ç‚ºæ³•å¾‹æ–‡ç»çš„æ›¸å¯«æ–¹å¼æœ‰å›ºå®šæ¨¡å¼ï¼Œå› æ­¤è¦å¤§é‡ç§»å‡ºä¸é‡è¦çš„åè©
 docs = tm_map(docs,removeWords,c("generate","object","association","connected"," period","includes","shell","provided","first","second","present","end","group","formed","element","comprising","can","the"))
-# Convert the text to lower cas
-docs <- tm_map(docs, content_transformer(tolower))
-##²£¥ÍµüÀWªí®æ»P¤å¦r¶³
+
+##ç”¢ç”Ÿè©é »è¡¨æ ¼èˆ‡æ–‡å­—é›²
 dtm <- TermDocumentMatrix(docs)
 m <- as.matrix(dtm)
 v <- sort(rowSums(m),decreasing=TRUE)
@@ -58,5 +59,7 @@ print(wordcloud(words = d$word, freq = d$freq, min.freq = 3,
           max.words=20, random.order=FALSE, rot.per=0.38, 
           colors=brewer.pal(7, "Dark2")))
 ```
+#ç”±æ–‡å­—é›²å¯ä»¥çœ‹å‡ºå°å¤§ä¸»è¦æ˜¯ä»¥é›»å­é¡ã€ç”ŸåŒ–é¡ç‚ºä¸»ï¼Œ
+#å…¶ä¸­ï¼Œæ–¹æ³•å°ˆåˆ©å¤šæ–¼ç™¼æ˜å°ˆåˆ©
 
 
