@@ -1,0 +1,100 @@
+---
+title: "HW5-1 兒童輟學率分析"
+author: "b04608042 生機三 翁嬿婷"
+output: html_document
+---
+```{r setup, include=TRUE}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(Hmisc)
+library(e1071)
+
+data = read.csv('all.csv',header = TRUE)%>%as.data.frame()
+d = data
+#移除遺失值
+for (i in 1:ncol(data)){
+  d = d [ d[,i]!= '-',] 
+}
+for(i in c(3:14)){
+  d[,i] =as.numeric(as.character(d[,i]))  
+  }
+
+a=na.omit(d)
+quan1 =quantile(a$'國小學生輟學率',0.33,na.rm = TRUE)
+quan2 =quantile(a$'國小學生輟學率',0.66,na.rm = TRUE)
+
+a = mutate(a,elementary = ' ')
+a$elementary [which(a$'國小學生輟學率'< quan1)]='低'
+a$elementary [which(a$'國小學生輟學率'>=quan2)]='高'
+a$elementary [which(a$elementary!='高' & a$elementary!='低')]='中'
+a$elementary =factor(a$elementary,levels = c('低','中','高'))
+
+#輟學可能會讓兒童犯罪率升高
+ggplot(data = a, aes(x = a$elementary, y =a$'兒童犯罪人口率' )) +
+  geom_boxplot() + coord_flip() +
+  labs( x= '國小學生輟學情況', y ='兒童犯罪人口率' , 
+        title = '國小輟學率與兒童犯罪人口率')
+#輟學與國小師生比無關
+ggplot(data = a, aes(x = a$elementary, y =a$'平均每一教師教導學生數.國小')) +
+  geom_boxplot() +coord_flip() +
+  labs( x= '國小學生輟學情況', y ='國小師生比' , 
+        title = '國小師生比')
+
+#anova檢定(H0:國小輟學率與兒童犯罪率無關)
+test1 =data.frame(a$elementary, a$'兒童犯罪人口率')
+aov.1 = aov(test1[,2]~test1[,1],data = test1)
+summary(aov.1)
+#Pr(>F)極小，故不接受H0假設
+ggplot(data = test1, 
+       aes(x =a.elementary, y = test1[,2]))+
+  stat_summary(fun.data = 'mean_cl_boot', size = 1) +
+  geom_hline(yintercept = mean(test1$a.elementary) , 
+             linetype = 'dotted') +
+  labs(x = '國小輟學率', y = '兒童犯罪率人數') +
+  coord_flip()
+
+
+```
+```{r}
+qplot(x=d$'國中學生輟學率',                               
+      y=d$'國小學生輟學率',                              
+      data=d,                      
+      geom="point",                         # 圖形=scatter plot
+      main = "國小/中學生輟學率與原住民人口關係圖",  
+      xlab="國中學生輟學率",                          
+      ylab="國小學生輟學率",                    
+      color=d$'原住民人口比'                       
+)
+#由此圖可以觀察到兩件事，
+#一是國小輟學率高的話國中輟學率必定高，反之則不一定
+#二是圖形右上方的顏色幾乎都偏淺，推測原住民小孩可能是影響輟學率的一大原因
+qplot(x=d$X.1,                               
+      y=d$'原住民人口比',                              
+      data=d,                      
+      geom="point",                         # 圖形=scatter plot
+      main = "各縣市與原住民人口關係圖",  
+      xlab="縣市",                      # X軸的名稱
+      ylab="原住民人口")
+#我們把依照原住民人口比例分成兩組，用中位數分開
+c=na.omit(d)
+half =quantile(d$'原住民人口比',0.5,na.rm = TRUE)
+c = mutate(c,origin = ' ')
+c$origin [which(c$'原住民人口比'> half)]='多'
+c$origin [which(c$origin!='多')]='少'
+c$origin =factor(c$origin,levels = c('少','多'))
+#t-test(Ho假設:原住民人口多寡不會影響輟學率)
+t.test(c$'國小學生輟學率'~c$origin)
+t.test(c$'國中學生輟學率'~c$origin)
+#兩者皆 p-value > 0.05 故不接受Ho假說
+ggplot(data = c, aes(x = c$origin, y =c$'國小學生輟學率' )) +
+  geom_boxplot() + coord_flip() +
+  labs( y= '國小學生輟學情況', x ='原住民比例' , 
+        title = '國小輟學率與原住民人口比率關係圖')
+ggplot(data = c, aes(x = c$origin, y =c$'國中學生輟學率' )) +
+  geom_boxplot() + coord_flip() +
+  labs( y= '國中學生輟學情況', x ='原住民比例' , 
+        title = '國中輟學率與原住民人口比率關係圖')
+
+
+```

@@ -1,0 +1,51 @@
+---
+title: "HW5-2 從基本人口結構與行業結構用svm推測縣市"
+author: "b04608042 生機三 翁嬿婷"
+output: html_document
+---
+
+```{r setup}
+library(dplyr)
+library(caret)
+library(e1071)
+data = read.csv('part2.csv',header = TRUE)%>%as.data.frame()
+d= data[,-1]
+#移除遺失值
+for (i in 1:ncol(d)){
+  d = d [ d[,i]!= '...',] 
+}
+for(i in c(6:8)){
+  d[,i] =as.numeric(as.character(d[,i]))  
+}
+d =na.omit(d)
+#SVM預測
+#預測2016年的各縣市資料
+testpart = d[(c(nrow(d)-21):nrow(d)),]
+trainpart = d[c(1:(nrow(d)-22)),]
+svm.model = svm(X.1 ~., data = trainpart)
+svm.pred <- predict(svm.model, testpart[,-1])
+## 顯示結果
+print(svm.pred)
+#結果明顯不正確
+```
+##把組別簡化成兩類再試試看
+```{r}
+t=d
+u = c(' 臺北市',' 新北市',' 臺中市',' 高雄市',' 臺南市',' 新竹市',' 桃園市')
+t= mutate(t,city =' ')
+for(i in c(1:length(u))){
+  t$city[which(t$X.1 ==u[i])]='都市'
+}
+t$city[which(t$city==' ')]='非都市'
+t$city = as.factor(t$city)
+t=t[,c(-1)]
+testpart2 = t[(c(nrow(t)-21):nrow(t)),]
+trainpart2 = t[c(1:(nrow(t)-22)),]
+svm.model2 = svm(city~., data = trainpart2)
+svm.pred2 <- predict(svm.model2, testpart2[,-8])
+## 顯示結果
+print(svm.pred2)
+confusionMatrix(svm.pred2,testpart2[,8])
+## Accuracy為0.86，明顯有進步，很可能是因為資料量(1998-2015年)不夠，因此SVM沒辦法分類到那麼仔細
+```
+
