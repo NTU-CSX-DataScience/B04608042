@@ -1,0 +1,103 @@
+---
+title: "hw4 - 用tfidf分類專利文件"
+author: "翁嬿婷 生機三 B04608042"
+output: html_document
+---
+
+```{r setup}
+library(NLP)
+Sys.setenv(JAVA_HOME="C:/Program Files/Java/jdk1.8.0_144/")
+library(rJava)
+library(slam)
+library(Matrix)
+library(ggplot2)
+source('readfromtxt.R')
+#用之前爬蟲到的專利文件之claim做分類依據
+```
+```{r}
+tdm <- TermDocumentMatrix(docs,control = list(wordLengths = c(2, Inf)))
+ass1 = findAssocs(tdm, "method", 0.5)
+print(ass1)
+ass2 = findAssocs(tdm, "invent", 0.5)
+print(ass2)
+#可看出申請方法專利之間的相關性較發明專利少
+# tf-idf computation
+N = tdm$ncol
+tf <- apply(tdm, 2, sum)
+idfCal <- function(word_doc)
+{ 
+  log2( N / nnzero(word_doc) ) 
+}
+idf <- apply(tdm, 1, idfCal)
+
+
+doc.tfidf <- as.matrix(tdm)
+for(x in 1:nrow(tdm))
+{
+  for(y in 1:ncol(tdm))
+  {
+    doc.tfidf[x,y] <- (doc.tfidf[x,y] / tf[y]) * idf[x]
+  }
+}
+
+# 畫出 tf-idf 統計圖(用剛剛的ass2)
+library(plotly)
+topID = lapply(rownames(as.data.frame(ass2)), function(x) 
+  which(rownames(tdm) == x))
+topID = unlist(topID)
+plot_ly(data = as.data.frame(doc.tfidf),
+        x = as.numeric(colnames(doc.tfidf)),
+        y = doc.tfidf[topID[3],], 
+        name = rownames(doc.tfidf)[topID[1]],
+        type = "scatter", mode= "box") %>%
+  add_trace(y = doc.tfidf[topID[2],],
+            name = rownames(doc.tfidf)[topID[4]])
+#get short doc matrix
+q <- rownames(doc.tfidf[c(1:nrow(doc.tfidf)),])
+all.term <- rownames(doc.tfidf)
+loc <- which(all.term %in% q)
+s.tdm <- doc.tfidf[loc,]
+
+# result : cos similarity ranking
+cos.sim <- function(x, y)
+{ 
+  (as.vector(x) %*% as.vector(y)) / (norm(as.matrix(x)) * norm(y)) 
+}
+doc.cos <- apply(s.tdm[,1:100], 2, cos.sim,
+                 y=as.matrix(s.tdm[,43]))
+orderDoc <- doc.cos[order(doc.cos, decreasing = TRUE)]
+plot_ly(data = as.data.frame(orderDoc),
+        x = rownames(as.data.frame(orderDoc)),
+        y = orderDoc, 
+        name = rownames(doc.tfidf)[topID],
+        type = "bar", mode= "box")
+#第43號專利與其他專利的同質性較高，稍微看了一下文件，可以發現都是工程物理類的文件。
+```
+
+```{r}
+# Kmeans 分群
+
+library(stats)
+#因為IPC(依技術分類的一種標準)共有8大類，故以8類為分群標準
+testTfidf = doc.tfidf
+testTfidf= testTfidf[,-c(35,48,66,67,86)]
+testTfidf =testTfidf[-nrow(testTfidf),]
+testTfidf = t(testTfidf)
+set.seed(55)
+kmeansOut <- kmeans(testTfidf, 8, nstart = 50)
+tfidf.kmeans =as.factor(kmeansOut$cluster)
+kmeans_result = as.data.frame(tfidf.kmeans)
+print(kmeans_result)#結果與剛剛做的cos similarity 不太相合
+#繪圖觀察
+tfidf.pca <- prcomp(testTfidf)
+library(ggbiplot)
+g <- ggbiplot(tfidf.pca, obs.scale = 1, var.scale = 1, 
+              groups = tfidf.kmeans, ellipse = TRUE, 
+              circle = TRUE, labels = rownames(testTfidf))
+g <- g + scale_color_discrete(name = '')
+g <- g + theme(legend.direction = 'horizontal', 
+               legend.position = 'top')
+#似乎只能看出明顯兩大區
+print(g)
+```
+
