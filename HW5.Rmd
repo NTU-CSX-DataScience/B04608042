@@ -35,11 +35,14 @@ ggplot(data = a, aes(x = a$elementary, y =a$'兒童犯罪人口率' )) +
   geom_boxplot() + coord_flip() +
   labs( x= '國小學生輟學情況', y ='兒童犯罪人口率' , 
         title = '國小輟學率與兒童犯罪人口率')
-#輟學與國小師生比無關
+print(cor(a$'國小學生輟學率', y =a$'兒童犯罪人口率'))#高度相關
+
+#輟學與國小師生比無明顯關係
 ggplot(data = a, aes(x = a$elementary, y =a$'平均每一教師教導學生數.國小')) +
   geom_boxplot() +coord_flip() +
   labs( x= '國小學生輟學情況', y ='國小師生比' , 
         title = '國小師生比')
+print(cor(a$'平均每一教師教導學生數.國小', y =a$'兒童犯罪人口率'))#僅為中度相關
 
 #anova檢定(H0:國小輟學率與兒童犯罪率無關)
 test1 =data.frame(a$elementary, a$'兒童犯罪人口率')
@@ -54,7 +57,6 @@ ggplot(data = test1,
   labs(x = '國小輟學率', y = '兒童犯罪率人數') +
   coord_flip()
 
-
 ```
 ```{r}
 qplot(x=d$'國中學生輟學率',                               
@@ -66,6 +68,12 @@ qplot(x=d$'國中學生輟學率',
       ylab="國小學生輟學率",                    
       color=d$'原住民人口比'                       
 )
+
+
+
+
+
+
 #由此圖可以觀察到兩件事，
 #一是國小輟學率高的話國中輟學率必定高，反之則不一定
 #二是圖形右上方的顏色幾乎都偏淺，推測原住民小孩可能是影響輟學率的一大原因
@@ -95,6 +103,8 @@ ggplot(data = c, aes(x = c$origin, y =c$'國中學生輟學率' )) +
   geom_boxplot() + coord_flip() +
   labs( y= '國中學生輟學情況', x ='原住民比例' , 
         title = '國中輟學率與原住民人口比率關係圖')
-
+#從相關系書來看也有一樣結果
+cor(a$'國小學生輟學率', y =a$'原住民人口比')
+cor(a$'國中學生輟學率', y =a$'原住民人口比')
 
 ```
